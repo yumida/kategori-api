@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"cashier-api/models"
+	"cashier-api/services"
 	"encoding/json"
-	"kategori-api/models"
-	"kategori-api/services"
 	"net/http"
 	"strconv"
 	"strings"
@@ -27,7 +27,8 @@ func (h *CategoryHandler) HandleCategory(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	category, err := h.service.GetAll()
+	name := r.URL.Query().Get("name")
+	category, err := h.service.GetAll(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,7 +69,7 @@ func (h *CategoryHandler) HandleCategoryById(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/category/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/product/category/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid category ID", http.StatusBadRequest)
@@ -86,7 +87,7 @@ func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CategoryHandler) UpdateByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/category/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/product/category/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid category ID", http.StatusBadRequest)
@@ -101,18 +102,18 @@ func (h *CategoryHandler) UpdateByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	category.ID = id
-	err = h.service.Update(&category)
+	updatedCategory, err := h.service.Update(&category)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(category)
+	json.NewEncoder(w).Encode(updatedCategory)
 }
 
 func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/category/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/product/category/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid category ID", http.StatusBadRequest)

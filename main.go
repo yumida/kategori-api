@@ -1,11 +1,11 @@
 package main
 
 import (
+	"cashier-api/database"
+	"cashier-api/handlers"
+	"cashier-api/repositories"
+	"cashier-api/services"
 	"fmt"
-	"kategori-api/database"
-	"kategori-api/handlers"
-	"kategori-api/repositories"
-	"kategori-api/services"
 	"log"
 	"net/http"
 	"os"
@@ -41,17 +41,38 @@ func main() {
 	}
 	defer db.Close()
 
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo)
+	productHandler := handlers.NewProductHandler(productService)
+
+	http.HandleFunc("/api/product", func(w http.ResponseWriter, r *http.Request) {
+		productHandler.HandleProducts(w, r)
+	})
+
+	http.HandleFunc("/api/product/", func(w http.ResponseWriter, r *http.Request) {
+		productHandler.HandleProductByID(w, r)
+	})
+
 	categoryRepo := repositories.NewCategoryRepository(db)
 	categoryService := services.NewCategoryService(categoryRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-	http.HandleFunc("/api/category", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/product/category", func(w http.ResponseWriter, r *http.Request) {
 		categoryHandler.HandleCategory(w, r)
 	})
 
-	http.HandleFunc("/api/category/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/product/category/", func(w http.ResponseWriter, r *http.Request) {
 		categoryHandler.HandleCategoryById(w, r)
 	})
+
+	// Transaction
+	transactionRepo := repositories.NewTransactionRepository(db)
+	transactionService := services.NewTransactionService(transactionRepo)
+	transactionHandler := handlers.NewTransactionHandler(transactionService)
+
+	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout)           // POST
+	http.HandleFunc("/api/report/hari-ini", transactionHandler.HandleReportToday) // GET
+	http.HandleFunc("/api/report", transactionHandler.HandleReport)               // GET
 
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running di", addr)

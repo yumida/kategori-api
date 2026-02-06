@@ -1,4 +1,4 @@
-module kategori-api
+module cashier-api
 
 go 1.25.4
 

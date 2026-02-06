@@ -1,9 +1,9 @@
 package repositories
 
 import (
+	"cashier-api/models"
 	"database/sql"
 	"errors"
-	"kategori-api/models"
 )
 
 type CategoryRepository struct {
@@ -14,9 +14,15 @@ func NewCategoryRepository(db *sql.DB) *CategoryRepository {
 	return &CategoryRepository{db: db}
 }
 
-func (repo *CategoryRepository) GetAll() (any, error) {
-	query := "SELECT id, name, description FROM category"
-	rows, err := repo.db.Query(query)
+func (repo *CategoryRepository) GetAll(nameFilter string) ([]models.Category, error) {
+	query := "SELECT id, name, description FROM categories c"
+	args := []interface{}{}
+	if nameFilter != "" {
+		query += " WHERE c.name ILIKE $1"
+		args = append(args, "%"+nameFilter+"%")
+	}
+
+	rows, err := repo.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -36,26 +42,26 @@ func (repo *CategoryRepository) GetAll() (any, error) {
 }
 
 func (repo *CategoryRepository) Create(category *models.Category) error {
-	query := "INSERT INTO category (name, description) VALUES ($1, $2) RETURNING id"
+	query := "INSERT INTO categories (name, description) VALUES ($1, $2) RETURNING id"
 	err := repo.db.QueryRow(query, category.Name, category.Description).Scan(&category.ID)
 	return err
 }
 
-func (repo *CategoryRepository) GetByID(id int) (any, error) {
-	query := "SELECT id, name, description FROM category WHERE id = $1"
-	var p models.Category
-	err := repo.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description)
+func (repo *CategoryRepository) GetByID(id int) (*models.Category, error) {
+	query := "SELECT id, name, description FROM categories WHERE id = $1"
+	var category models.Category
+	err := repo.db.QueryRow(query, id).Scan(&category.ID, &category.Name, &category.Description)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("category not found")
 	}
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	return &category, nil
 }
 
 func (repo *CategoryRepository) Update(category *models.Category) error {
-	query := "UPDATE category SET name = $1, description = $2 WHERE id = $3"
+	query := "UPDATE categories SET name = COALESCE(NULLIF($1, ''), name), description = COALESCE(NULLIF($2, ''), description) WHERE id = $3"
 	result, err := repo.db.Exec(query, category.Name, category.Description, category.ID)
 
 	if err != nil {
@@ -75,7 +81,7 @@ func (repo *CategoryRepository) Update(category *models.Category) error {
 }
 
 func (repo *CategoryRepository) Delete(id int) error {
-	query := "DELETE FROM category WHERE id = $1"
+	query := "DELETE FROM categories WHERE id = $1"
 	result, err := repo.db.Exec(query, id)
 
 	if err != nil {
